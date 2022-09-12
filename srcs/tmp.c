@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/12 17:01:15 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/12 14:31:49 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	EATING 0
-#define	SLEEPING 1
-
+#define	HUNGRY 0
+#define	EATING 1
+#define	SLEEPING 2
+#define	THINKING 3
 typedef struct	s_rules
 {
 	int	philo_nbr;
@@ -32,7 +33,6 @@ typedef struct	s_philo
 {
 	int				i;
 	int				state;
-	int				meals_eaten;
 	t_rules			rules;
 	pthread_mutex_t	*forks;
 }				t_philo;
@@ -41,15 +41,14 @@ void	take_fork(t_philo philo, int frk, pthread_mutex_t *forks)
 {
 	if (frk >= philo.rules.philo_nbr)
 		frk = 0;
-	//printf("Philo %i tries to take fork %i\n", philo.i, frk);
+	printf("Philo %i tries to take fork %i\n", philo.i, frk);
 	pthread_mutex_lock(&forks[frk]);
 	printf("Philo %i has taken fork %i\n", philo.i, frk);
 }
 
 void	eat(t_philo *philo, pthread_mutex_t *forks)
 {
-	//if (philo->i == philo->rules.philo_nbr - 1)
-	if (philo->i % 2 == 0)
+	if (philo->i == philo->rules.philo_nbr)
 	{
 		take_fork(*philo, philo->i + 1, forks);
 		take_fork(*philo, philo->i, forks);
@@ -62,10 +61,7 @@ void	eat(t_philo *philo, pthread_mutex_t *forks)
 	printf("Philo %i is eating\n", philo->i);
 	usleep(philo->rules.eat_time);
 	pthread_mutex_unlock(&forks[philo->i]);
-	if (philo->i + 1 >= philo->rules.philo_nbr)
-		pthread_mutex_unlock(&forks[0]);
-	else
-		pthread_mutex_unlock(&forks[philo->i + 1]);
+	pthread_mutex_unlock(&forks[philo->i + 1]);
 }
 
 void	zzz(int time, int i)
@@ -79,33 +75,22 @@ void	zzz(int time, int i)
 void	*philo_thread(void *void_philo)
 {
 	t_philo	*philo;
+	int	death_counter;
 
+	death_counter = 5;
 	philo = (t_philo *) void_philo;
-	philo->meals_eaten = 3;
-	while (philo->meals_eaten)
+	if (philo->i == 0)
+		philo->state = EATING;
+	while (death_counter)
 	{
 		eat(philo, philo->forks);
 		zzz(philo->rules.sleep_time, philo->i);
-		philo->meals_eaten--;
+		death_counter--;
 	}
 	pthread_exit(NULL);
 	return (0);
 }
 
-void	get_rules(int ac, char *av[], t_rules *rules)
-{
-	if (ac != 5 && ac != 6)
-	{
-		printf("Wrong arguments!\n");
-		return ;
-	}
-	rules->philo_nbr = ft_atoi(av[1]);
-	rules->death_time = ft_atoi(av[2]);
-	rules->eat_time = ft_atoi(av[3]);
-	rules->sleep_time = ft_atoi(av[4]);
-	if (ac == 6)
-		rules->meal_nbr = ft_atoi(av[5]);
-}
 
 int	main(int ac, char *av[])
 {
@@ -115,7 +100,14 @@ int	main(int ac, char *av[])
 	t_philo	*philo;
 	t_rules rules;
 
-	get_rules(ac, av, &rules);
+	if (ac != 5 && ac != 6)
+		return (printf("Wrong arguments!\n"));
+	rules.philo_nbr = ft_atoi(av[1]);
+	rules.death_time = ft_atoi(av[2]);
+	rules.eat_time = ft_atoi(av[3]);
+	rules.sleep_time = ft_atoi(av[4]);
+	if (ac == 6)
+		rules.meal_nbr = ft_atoi(av[5]);
 	threads = malloc(rules.philo_nbr * sizeof(pthread_t));
 	forks = malloc(rules.philo_nbr * sizeof(pthread_mutex_t));
 	philo = malloc(rules.philo_nbr * sizeof(t_philo));
@@ -126,6 +118,7 @@ int	main(int ac, char *av[])
 	while (++i < rules.philo_nbr)
 	{
 		philo[i].i = i;
+		philo[i].state = HUNGRY;
 		philo[i].rules = rules;
 		philo[i].forks = forks;
         pthread_create(&threads[i], NULL, philo_thread, (void*) &philo[i]);
@@ -133,8 +126,6 @@ int	main(int ac, char *av[])
 	i = -1;
 	while (++i < rules.philo_nbr)
     	pthread_join(threads[i], NULL);
-	pthread_mutex_destroy(&forks[i]);
-	free(threads);
 	free(forks);
 	free(philo);
 	return (0);
