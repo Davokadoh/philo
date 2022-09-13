@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/13 12:06:31 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/13 12:11:15 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,9 +57,10 @@ void	eat(t_ph *ph, pthread_mutex_t *frks, long long *last_meal)
 		take_fork(*ph, ph->id, frks);
 		take_fork(*ph, ph->id + 1, frks);
 	}
-	printf("%lli Philo %i is eating\n", get_timestamp(0), ph->id + 1);
+	//printf("%lli\n", get_timestamp(0) - *last_meal);
 	if (get_timestamp(0) - *last_meal > ph->rules.death_time)
 		printf("DEAD\n");
+	printf("%lli Philo %i is eating\n", get_timestamp(0), ph->id + 1);
 	msleep(ph->rules.eat_time);
 	*last_meal = get_timestamp(0);
 	ph->meals_eaten++;
