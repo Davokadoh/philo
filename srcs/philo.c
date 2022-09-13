@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/13 12:05:11 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/13 12:06:31 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ void	take_fork(t_ph ph, int frk, pthread_mutex_t *frks)
 	printf("%lli Philo %i has taken fork %i\n", get_timestamp(0), ph.id + 1, frk + 1);
 }
 
-void	eat(t_ph *ph, pthread_mutex_t *frks, long long last_meal)
+void	eat(t_ph *ph, pthread_mutex_t *frks, long long *last_meal)
 {
 	if (ph->id % 2 == 0)
 	{
@@ -58,10 +58,10 @@ void	eat(t_ph *ph, pthread_mutex_t *frks, long long last_meal)
 		take_fork(*ph, ph->id + 1, frks);
 	}
 	printf("%lli Philo %i is eating\n", get_timestamp(0), ph->id + 1);
-	if (get_timestamp(0) - last_meal > ph->rules.death_time)
+	if (get_timestamp(0) - *last_meal > ph->rules.death_time)
 		printf("DEAD\n");
 	msleep(ph->rules.eat_time);
-	last_meal = get_timestamp(0);
+	*last_meal = get_timestamp(0);
 	ph->meals_eaten++;
 	pthread_mutex_unlock(&frks[ph->id]);
 	if (ph->id + 1 >= ph->rules.philo_nbr)
@@ -86,7 +86,7 @@ void	*routine(void *void_philo)
 	last_meal = 0;
 	while (ph->meals_eaten < ph->rules.max_meal || ph->rules.max_meal == 0)
 	{
-		eat(ph, ph->frks, last_meal);
+		eat(ph, ph->frks, &last_meal);
 		zzz(ph->rules.sleep_time, ph->id);
 	}
 	pthread_exit(NULL);
