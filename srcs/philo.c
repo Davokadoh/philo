@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 15:24:12 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 15:43:23 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,9 @@ long long	now(int init)
 	return (milliseconds - start);
 }
 
-void	msleep(int msec)
+void	msleep(long long msec)
 {
-	int	start;
+	long long	start;
 
 	start = now(0);
 	while (now(0) - start < msec)
@@ -45,6 +45,8 @@ void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 	if (frk >= ph->data->nbr)
 		frk = 0;
 	pthread_mutex_lock(&frks[frk]);
+	if (ph->data->dead)
+		return;
 	printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, frk + 1);
 }
 
@@ -127,10 +129,14 @@ void	*routine(void *void_philo)
 	ph = (t_ph *) void_philo;
 	ph->last_meal = 0;
 	pthread_create(&death_thread, NULL, death_timer, (void *) ph);
+	if (ph->data->nbr == 1)
+	{
+		printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, 1);
+		msleep(ph->data->death_time);
+		pthread_exit(NULL);
+	}
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
-		if (ph->data->dead)
-			break;
 		take_forks(ph, ph->frks);
 		if (ph->data->dead)
 			break;
