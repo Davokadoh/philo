@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/13 11:51:36 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 14:30:37 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,22 +23,24 @@
 # define EATING 0
 # define SLEEPING 1
 
-typedef struct s_rules
+typedef struct s_data
 {
-	int			philo_nbr;
+	int			nbr;
+	int			dead;
 	int			death_time;
 	int			eat_time;
-	int			sleep_time;
+	int			zzz_time;
 	int			max_meal;
 	long long	start_time;
-}				t_rules;
+}				t_data;
 
 typedef struct s_philo
 {
 	int				id;
 	int				state;
 	int				meals_eaten;
-	t_rules			rules;
+	long long		last_meal;
+	t_data			*data;
 	pthread_mutex_t	*frks;
 }				t_ph;
 

@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/13 12:11:15 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 14:39:19 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,90 +18,135 @@ int	ft_error(char *msg)
 	return (1);
 }
 
-void	msleep(int msec)
-{
-	usleep(msec * 1000);
-}
-
-long long	get_timestamp(int init)
+long long	now(int init)
 {
     struct timeval		time;
-	static long long	start;
+	static long long	start = 0;
 	long long			milliseconds;
 
 	gettimeofday(&time, NULL);
 	milliseconds = time.tv_sec*1000LL + time.tv_usec/1000;
 	if (init)
 		start = milliseconds;
-	//printf("milliseconds: %lld\n", milliseconds);
 	return (milliseconds - start);
 }
 
-void	take_fork(t_ph ph, int frk, pthread_mutex_t *frks)
+void	msleep(int msec)
 {
-	if (frk >= ph.rules.philo_nbr)
-		frk = 0;
-	pthread_mutex_lock(&frks[frk]);
-	printf("%lli Philo %i has taken fork %i\n", get_timestamp(0), ph.id + 1, frk + 1);
+	int	start;
+
+	start = now(0);
+	while (now(0) - start < msec)
+		usleep(100);
 }
 
-void	eat(t_ph *ph, pthread_mutex_t *frks, long long *last_meal)
+void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
+{
+	if (frk >= ph->data->nbr)
+		frk = 0;
+	pthread_mutex_lock(&frks[frk]);
+	printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, frk + 1);
+}
+
+void	take_forks(t_ph *ph, pthread_mutex_t *frks)
 {
 	if (ph->id % 2 == 0)
 	{
-		take_fork(*ph, ph->id + 1, frks);
-		take_fork(*ph, ph->id, frks);
+		take_fork(ph, ph->id + 1, frks);
+		take_fork(ph, ph->id, frks);
 	}
 	else
 	{
-		take_fork(*ph, ph->id, frks);
-		take_fork(*ph, ph->id + 1, frks);
+		take_fork(ph, ph->id, frks);
+		take_fork(ph, ph->id + 1, frks);
 	}
-	//printf("%lli\n", get_timestamp(0) - *last_meal);
-	if (get_timestamp(0) - *last_meal > ph->rules.death_time)
-		printf("DEAD\n");
-	printf("%lli Philo %i is eating\n", get_timestamp(0), ph->id + 1);
-	msleep(ph->rules.eat_time);
-	*last_meal = get_timestamp(0);
-	ph->meals_eaten++;
+}
+
+void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
+{
 	pthread_mutex_unlock(&frks[ph->id]);
-	if (ph->id + 1 >= ph->rules.philo_nbr)
+	if (ph->id + 1 >= ph->data->nbr)
 		pthread_mutex_unlock(&frks[0]);
 	else
 		pthread_mutex_unlock(&frks[ph->id + 1]);
 }
 
+void	eat(t_ph *ph)
+{
+	printf("%lli Philo %i is eating.\n", now(0), ph->id + 1);
+	msleep(ph->data->eat_time);
+	ph->last_meal = now(0);
+	ph->meals_eaten++;
+}
+
 void	zzz(int time, int i)
 {
-	printf("%lli Philo %i is sleeping\n", get_timestamp(0), i + 1);
+	printf("%lli Philo %i is sleeping.\n", now(0), i + 1);
 	msleep(time);
-	printf("%lli Philo %i is thinking\n", get_timestamp(0), i + 1);
+	printf("%lli Philo %i is thinking.\n", now(0), i + 1);
+}
+
+void	die(t_ph *ph)
+{
+	ph->data->dead = 1;
+	printf("%lli Philo %i died.\n", now(0), ph->id);
+}
+
+void	*death_timer(void *void_philo)
+{
+	t_ph		*ph;
+
+	ph = (t_ph *) void_philo;
+	pthread_detach(pthread_self());
+	while (1)
+	{
+		msleep(ph->data->death_time);
+		//printf("Philo %i last meal was %lli ms ago.\n" , ph->id + 1, now(0) - ph->last_meal);
+		if (now(0) - ph->last_meal >= ph->data->death_time)
+		{
+			die(ph);
+			break;
+		}
+	}
+	pthread_exit(NULL);
 }
 
 void	*routine(void *void_philo)
 {
 	t_ph		*ph;
-	long long	last_meal;
+	pthread_t	death_thread;
 
 	ph = (t_ph *) void_philo;
-	last_meal = 0;
-	while (ph->meals_eaten < ph->rules.max_meal || ph->rules.max_meal == 0)
+	ph->last_meal = 0;
+	pthread_create(&death_thread, NULL, death_timer, (void *) ph);
+	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
-		eat(ph, ph->frks, &last_meal);
-		zzz(ph->rules.sleep_time, ph->id);
+		if (ph->data->dead)
+			break;
+		take_forks(ph, ph->frks);
+		if (ph->data->dead)
+			break;
+		eat(ph);
+		if (ph->data->dead)
+			break;
+		drop_forks(ph, ph->frks);
+		if (ph->data->dead)
+			break;
+		zzz(ph->data->zzz_time, ph->id);
 	}
+	drop_forks(ph, ph->frks);
 	pthread_exit(NULL);
 }
 
-void	threads(t_ph *ph, t_rules rules, pthread_mutex_t *frks, pthread_t *tids)
+void	threads(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 {
 	int	i;
 
 	i = -1;
-	while (++i < rules.philo_nbr)
+	while (++i < data->nbr)
 	{
 		ph[i].id = i;
-		ph[i].rules = rules;
+		ph[i].data = data;
 		ph[i].frks = frks;
 		ph[i].meals_eaten = 0;
 		pthread_create(&tids[i], NULL, routine, (void *) &ph[i]);
@@ -146,37 +191,39 @@ int	malloc_arrays(int nbr, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks)
 	return (0);
 }
 
-t_rules	get_rules(int ac, char *av[])
+t_data	get_rules(int ac, char *av[])
 {
-	t_rules	rules;
+	t_data	data;
 
-	rules.philo_nbr = ft_atoi(av[1]);
-	rules.death_time = ft_atoi(av[2]);
-	rules.eat_time = ft_atoi(av[3]);
-	rules.sleep_time = ft_atoi(av[4]);
+	//Check if args are ints before atoiing
+	data.nbr = ft_atoi(av[1]);
+	data.death_time = ft_atoi(av[2]);
+	data.eat_time = ft_atoi(av[3]);
+	data.zzz_time = ft_atoi(av[4]);
 	if (ac == 6)
-		rules.max_meal = ft_atoi(av[5]);
+		data.max_meal = ft_atoi(av[5]);
 	else
-		rules.max_meal = 0;
-	return (rules);
+		data.max_meal = 0;
+	data.dead = 0;
+	return (data);
 }
 
 int	main(int ac, char *av[])
 {
-	t_rules			rules;
+	t_data			data;
 	t_ph			*ph;
 	pthread_t		*tids;
 	pthread_mutex_t	*frks;
 
 	if (ac != 5 && ac != 6)
-		return (ft_error("Wrong number of arguments"));
-	rules = get_rules(ac, av); //Check if args are all ints
-	if (malloc_arrays(rules.philo_nbr, &ph, &tids, &frks))
-		return (ft_error("malloc fail"));
-	init_mutexes(rules.philo_nbr, frks); //Protect mutexes ?
-	rules.start_time = get_timestamp(1);
-	threads(ph, rules, frks, tids); //Check if tids created ?
-	wait_destroy_mutexes(rules.philo_nbr, tids, frks); //Nothing to be done ?
+		return (ft_error("Wrong number of arguments."));
+	data = get_rules(ac, av);
+	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
+		return (ft_error("Malloc fail."));
+	init_mutexes(data.nbr, frks); //Protect mutexes ?
+	data.start_time = now(1);
+	threads(ph, &data, frks, tids); //Check if tids created ?
+	wait_destroy_mutexes(data.nbr, tids, frks);
 	free_arrays(ph, tids, frks); //Check if arrays exist before freeing
 	return (0);
 }
