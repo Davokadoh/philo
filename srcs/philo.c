@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 15:43:23 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 16:18:15 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 int	ft_error(char *msg)
 {
-	printf("%s\n", msg);
+	printf("%s.\n", msg);
 	return (1);
 }
 
@@ -37,7 +37,7 @@ void	msleep(long long msec)
 
 	start = now(0);
 	while (now(0) - start < msec)
-		usleep(100);
+		usleep(1000);
 }
 
 void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
@@ -97,9 +97,7 @@ void	think(int i)
 void	die(t_ph *ph)
 {
 	ph->data->dead = 1;
-	printf("%lli Philo %i eated %lli msec ago.\n", now(0), ph->id + 1, now(0) - ph->last_meal);
-	printf("%lli Philo %i eated %i times.\n", now(0), ph->id + 1, ph->meals_eaten);
-	printf("%lli Philo %i died.\n", now(0), ph->id + 1);
+	printf("%lli Philo %i died. Last meal %lli msec ago.\n", now(0), ph->id + 1, now(0) - ph->last_meal);
 }
 
 void	*death_timer(void *void_philo)
@@ -110,7 +108,7 @@ void	*death_timer(void *void_philo)
 	pthread_detach(pthread_self());
 	while (1)
 	{
-		msleep(ph->data->death_time);
+		msleep(ph->data->death_time + 1);
 		if (now(0) - ph->last_meal >= ph->data->death_time &&
 				ph->data->finished < ph->data->nbr && !ph->data->dead)
 		{
@@ -235,10 +233,10 @@ int	main(int ac, char *av[])
 	pthread_mutex_t	*frks;
 
 	if (ac != 5 && ac != 6)
-		return (ft_error("Wrong number of arguments."));
+		return (ft_error("Wrong number of arguments"));
 	data = get_rules(ac, av);
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
-		return (ft_error("Malloc fail."));
+		return (ft_error("Malloc fail"));
 	init_mutexes(data.nbr, frks); //Protect mutexes ?
 	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
