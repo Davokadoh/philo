@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 14:39:19 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 15:24:12 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,22 +60,24 @@ void	take_forks(t_ph *ph, pthread_mutex_t *frks)
 		take_fork(ph, ph->id, frks);
 		take_fork(ph, ph->id + 1, frks);
 	}
+	ph->has_forks = 1;
 }
 
 void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 {
 	pthread_mutex_unlock(&frks[ph->id]);
-	if (ph->id + 1 >= ph->data->nbr)
-		pthread_mutex_unlock(&frks[0]);
-	else
+	if (ph->id + 1 < ph->data->nbr)
 		pthread_mutex_unlock(&frks[ph->id + 1]);
+	else
+		pthread_mutex_unlock(&frks[0]);
+	ph->has_forks = 0;
 }
 
 void	eat(t_ph *ph)
 {
 	printf("%lli Philo %i is eating.\n", now(0), ph->id + 1);
+	ph->last_meal = now(0) + ph->data->eat_time;
 	msleep(ph->data->eat_time);
-	ph->last_meal = now(0);
 	ph->meals_eaten++;
 }
 
@@ -83,13 +85,19 @@ void	zzz(int time, int i)
 {
 	printf("%lli Philo %i is sleeping.\n", now(0), i + 1);
 	msleep(time);
+}
+
+void	think(int i)
+{
 	printf("%lli Philo %i is thinking.\n", now(0), i + 1);
 }
 
 void	die(t_ph *ph)
 {
 	ph->data->dead = 1;
-	printf("%lli Philo %i died.\n", now(0), ph->id);
+	printf("%lli Philo %i eated %lli msec ago.\n", now(0), ph->id + 1, now(0) - ph->last_meal);
+	printf("%lli Philo %i eated %i times.\n", now(0), ph->id + 1, ph->meals_eaten);
+	printf("%lli Philo %i died.\n", now(0), ph->id + 1);
 }
 
 void	*death_timer(void *void_philo)
@@ -101,8 +109,8 @@ void	*death_timer(void *void_philo)
 	while (1)
 	{
 		msleep(ph->data->death_time);
-		//printf("Philo %i last meal was %lli ms ago.\n" , ph->id + 1, now(0) - ph->last_meal);
-		if (now(0) - ph->last_meal >= ph->data->death_time)
+		if (now(0) - ph->last_meal >= ph->data->death_time &&
+				ph->data->finished < ph->data->nbr && !ph->data->dead)
 		{
 			die(ph);
 			break;
@@ -127,14 +135,18 @@ void	*routine(void *void_philo)
 		if (ph->data->dead)
 			break;
 		eat(ph);
-		if (ph->data->dead)
-			break;
 		drop_forks(ph, ph->frks);
 		if (ph->data->dead)
 			break;
 		zzz(ph->data->zzz_time, ph->id);
+		if (ph->data->dead)
+			break;
+		think(ph->id);
 	}
-	drop_forks(ph, ph->frks);
+	if (ph->has_forks)
+		drop_forks(ph, ph->frks);
+	if (ph->meals_eaten >= ph->data->max_meal)
+		ph->data->finished++;
 	pthread_exit(NULL);
 }
 
@@ -205,6 +217,7 @@ t_data	get_rules(int ac, char *av[])
 	else
 		data.max_meal = 0;
 	data.dead = 0;
+	data.finished = -1;
 	return (data);
 }
 
@@ -221,7 +234,7 @@ int	main(int ac, char *av[])
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail."));
 	init_mutexes(data.nbr, frks); //Protect mutexes ?
-	data.start_time = now(1);
+	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
 	wait_destroy_mutexes(data.nbr, tids, frks);
 	free_arrays(ph, tids, frks); //Check if arrays exist before freeing

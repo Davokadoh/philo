@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 14:30:37 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/14 15:10:15 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,7 @@ typedef struct s_data
 	int			eat_time;
 	int			zzz_time;
 	int			max_meal;
-	long long	start_time;
+	int			finished;
 }				t_data;
 
 typedef struct s_philo
@@ -39,6 +39,7 @@ typedef struct s_philo
 	int				id;
 	int				state;
 	int				meals_eaten;
+	int				has_forks;
 	long long		last_meal;
 	t_data			*data;
 	pthread_mutex_t	*frks;
