@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 16:18:15 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/15 14:25:12 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 int	ft_error(char *msg)
 {
-	printf("%s.\n", msg);
+	printf("%s\n", msg);
 	return (1);
 }
 
@@ -25,7 +25,7 @@ long long	now(int init)
 	long long			milliseconds;
 
 	gettimeofday(&time, NULL);
-	milliseconds = time.tv_sec*1000LL + time.tv_usec/1000;
+	milliseconds = time.tv_sec * 1000LL + time.tv_usec / 1000;
 	if (init)
 		start = milliseconds;
 	return (milliseconds - start);
@@ -33,11 +33,19 @@ long long	now(int init)
 
 void	msleep(long long msec)
 {
-	long long	start;
+    struct timeval	time;
+	long long		start;
+	long long		stamp;
 
-	start = now(0);
-	while (now(0) - start < msec)
-		usleep(1000);
+	gettimeofday(&time, NULL);
+	stamp = time.tv_sec * 1000LL + time.tv_usec / 1000;
+	start = stamp;
+	while (stamp - start < msec)
+	{
+		usleep(100);
+		gettimeofday(&time, NULL);
+		stamp = time.tv_sec * 1000LL + time.tv_usec / 1000;
+	}
 }
 
 void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
@@ -78,7 +86,7 @@ void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 void	eat(t_ph *ph)
 {
 	printf("%lli Philo %i is eating.\n", now(0), ph->id + 1);
-	ph->last_meal = now(0) + ph->data->eat_time;
+	ph->last_meal = now(0);// + ph->data->eat_time;
 	msleep(ph->data->eat_time);
 	ph->meals_eaten++;
 }
@@ -100,33 +108,12 @@ void	die(t_ph *ph)
 	printf("%lli Philo %i died. Last meal %lli msec ago.\n", now(0), ph->id + 1, now(0) - ph->last_meal);
 }
 
-void	*death_timer(void *void_philo)
-{
-	t_ph		*ph;
-
-	ph = (t_ph *) void_philo;
-	pthread_detach(pthread_self());
-	while (1)
-	{
-		msleep(ph->data->death_time + 1);
-		if (now(0) - ph->last_meal >= ph->data->death_time &&
-				ph->data->finished < ph->data->nbr && !ph->data->dead)
-		{
-			die(ph);
-			break;
-		}
-	}
-	pthread_exit(NULL);
-}
-
 void	*routine(void *void_philo)
 {
 	t_ph		*ph;
-	pthread_t	death_thread;
 
 	ph = (t_ph *) void_philo;
 	ph->last_meal = 0;
-	pthread_create(&death_thread, NULL, death_timer, (void *) ph);
 	if (ph->data->nbr == 1)
 	{
 		printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, 1);
@@ -149,7 +136,7 @@ void	*routine(void *void_philo)
 	}
 	if (ph->has_forks)
 		drop_forks(ph, ph->frks);
-	if (ph->meals_eaten >= ph->data->max_meal)
+	//if (ph->meals_eaten >= ph->data->max_meal)
 		ph->data->finished++;
 	pthread_exit(NULL);
 }
@@ -225,22 +212,48 @@ t_data	get_rules(int ac, char *av[])
 	return (data);
 }
 
+void	*death_routine(void *void_philo)
+{
+	int			i;
+	t_ph		*ph;
+
+	pthread_detach(pthread_self());
+	ph = (t_ph *) void_philo;
+	while (1)
+	{
+		i = -1;
+		while (++i < ph[0].data->nbr)
+		{
+			if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
+				break ;
+			if (now(0) - ph[i].last_meal >= ph[0].data->death_time &&
+					!ph[0].data->dead)
+				die(&ph[i]);
+		}
+		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
+			break ;
+	}
+	pthread_exit(NULL);
+}
+
 int	main(int ac, char *av[])
 {
 	t_data			data;
 	t_ph			*ph;
 	pthread_t		*tids;
+	pthread_t		death;
 	pthread_mutex_t	*frks;
 
 	if (ac != 5 && ac != 6)
-		return (ft_error("Wrong number of arguments"));
+		return (ft_error("Wrong number of arguments."));
 	data = get_rules(ac, av);
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
-		return (ft_error("Malloc fail"));
+		return (ft_error("Malloc fail."));
 	init_mutexes(data.nbr, frks); //Protect mutexes ?
 	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
+	pthread_create(&death, NULL, death_routine, (void *) ph);
 	wait_destroy_mutexes(data.nbr, tids, frks);
-	free_arrays(ph, tids, frks); //Check if arrays exist before freeing
+	free_arrays(ph, tids, frks);
 	return (0);
 }
