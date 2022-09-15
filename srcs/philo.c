@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/15 14:25:12 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/15 14:42:47 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,7 +136,7 @@ void	*routine(void *void_philo)
 	}
 	if (ph->has_forks)
 		drop_forks(ph, ph->frks);
-	//if (ph->meals_eaten >= ph->data->max_meal)
+	if (ph->meals_eaten >= ph->data->max_meal)
 		ph->data->finished++;
 	pthread_exit(NULL);
 }
@@ -233,6 +233,8 @@ void	*death_routine(void *void_philo)
 		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
 			break ;
 	}
+			printf("Finished : %i\n", ph[0].data->finished);
+			printf("Nbr : %i\n", ph[0].data->nbr - 1);
 	pthread_exit(NULL);
 }
 
