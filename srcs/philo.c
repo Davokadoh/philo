@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/15 14:42:47 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/16 15:39:51 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ long long	now(int init)
 
 void	msleep(long long msec)
 {
+	//usleep(msec * 1000);
     struct timeval	time;
 	long long		start;
 	long long		stamp;
@@ -52,6 +53,7 @@ void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 {
 	if (frk >= ph->data->nbr)
 		frk = 0;
+	//frk %= ph->data->nbr;
 	pthread_mutex_lock(&frks[frk]);
 	if (ph->data->dead)
 		return;
@@ -60,35 +62,29 @@ void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 
 void	take_forks(t_ph *ph, pthread_mutex_t *frks)
 {
-	if (ph->id % 2 == 0)
-	{
-		take_fork(ph, ph->id + 1, frks);
-		take_fork(ph, ph->id, frks);
-	}
-	else
-	{
-		take_fork(ph, ph->id, frks);
-		take_fork(ph, ph->id + 1, frks);
-	}
+	int	id;
+
+	id = ph->id;
+	take_fork(ph, id + ((id + 1) % 2), frks);
+	take_fork(ph, id + (id % 2), frks);
 	ph->has_forks = 1;
 }
 
 void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 {
 	pthread_mutex_unlock(&frks[ph->id]);
-	if (ph->id + 1 < ph->data->nbr)
-		pthread_mutex_unlock(&frks[ph->id + 1]);
-	else
-		pthread_mutex_unlock(&frks[0]);
+	pthread_mutex_unlock(&frks[(ph->id + 1) % ph->data->nbr]);
 	ph->has_forks = 0;
 }
 
 void	eat(t_ph *ph)
 {
-	printf("%lli Philo %i is eating.\n", now(0), ph->id + 1);
+	printf("%lli Philo %i is eating his meal %i.\n", now(0), ph->id + 1, ph->meals_eaten + 1);
+	ph->meals_eaten++;
+	if (ph->meals_eaten >= ph->data->max_meal)
+		ph->data->finished++;
 	ph->last_meal = now(0);// + ph->data->eat_time;
 	msleep(ph->data->eat_time);
-	ph->meals_eaten++;
 }
 
 void	zzz(int time, int i)
@@ -105,7 +101,7 @@ void	think(int i)
 void	die(t_ph *ph)
 {
 	ph->data->dead = 1;
-	printf("%lli Philo %i died. Last meal %lli msec ago.\n", now(0), ph->id + 1, now(0) - ph->last_meal);
+	printf("%lli Philo %i died. Last meal (n %i) %lli msec ago.\n", now(0), ph->id + 1, ph->meals_eaten, now(0) - ph->last_meal);
 }
 
 void	*routine(void *void_philo)
@@ -113,13 +109,14 @@ void	*routine(void *void_philo)
 	t_ph		*ph;
 
 	ph = (t_ph *) void_philo;
-	ph->last_meal = 0;
 	if (ph->data->nbr == 1)
 	{
 		printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, 1);
 		msleep(ph->data->death_time);
 		pthread_exit(NULL);
 	}
+	if (ph->id % 2)
+		msleep(1);
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
 		take_forks(ph, ph->frks);
@@ -136,8 +133,6 @@ void	*routine(void *void_philo)
 	}
 	if (ph->has_forks)
 		drop_forks(ph, ph->frks);
-	if (ph->meals_eaten >= ph->data->max_meal)
-		ph->data->finished++;
 	pthread_exit(NULL);
 }
 
@@ -152,6 +147,7 @@ void	threads(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 		ph[i].data = data;
 		ph[i].frks = frks;
 		ph[i].meals_eaten = 0;
+		ph[i].last_meal = 0;
 		pthread_create(&tids[i], NULL, routine, (void *) &ph[i]);
 	}
 }
@@ -187,10 +183,21 @@ void	init_mutexes(int max, pthread_mutex_t *frks)
 int	malloc_arrays(int nbr, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks)
 {
 	*ph = malloc(nbr * sizeof(t_ph));
-	*tids = malloc(nbr * sizeof(pthread_t));
-	*frks = malloc(nbr * sizeof(pthread_mutex_t));
-	if (!*ph || !*tids || !*frks)
+	if (!*ph)
 		return (1);
+	*tids = malloc(nbr * sizeof(pthread_t));
+	if (!*tids)
+	{
+		free(ph);
+		return (1);
+	}
+	*frks = malloc(nbr * sizeof(pthread_mutex_t));
+	if (!*frks)
+	{
+		free(ph);
+		free(tids);
+		return (1);
+	}
 	return (0);
 }
 
@@ -233,8 +240,7 @@ void	*death_routine(void *void_philo)
 		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
 			break ;
 	}
-			printf("Finished : %i\n", ph[0].data->finished);
-			printf("Nbr : %i\n", ph[0].data->nbr - 1);
+	//printf("Finished : %i/%i\n", ph[0].data->finished + 1, ph[0].data->nbr);
 	pthread_exit(NULL);
 }
 

@@ -1,4 +1,4 @@
-CFLAGS 			=	-Wall -Wextra -Werror #-fsanitize=address
+CFLAGS 			=	-Wall -Wextra -Werror #-fsanitize=address -O3
 TARGET 			=	philo
 SRCS_DIR 		=	./srcs
 OBJS_DIR 		=	./objs
