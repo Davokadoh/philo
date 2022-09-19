@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/16 15:39:51 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 12:14:14 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,9 +51,7 @@ void	msleep(long long msec)
 
 void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 {
-	if (frk >= ph->data->nbr)
-		frk = 0;
-	//frk %= ph->data->nbr;
+	frk %= ph->data->nbr;
 	pthread_mutex_lock(&frks[frk]);
 	if (ph->data->dead)
 		return;
@@ -79,11 +77,11 @@ void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 
 void	eat(t_ph *ph)
 {
-	printf("%lli Philo %i is eating his meal %i.\n", now(0), ph->id + 1, ph->meals_eaten + 1);
 	ph->meals_eaten++;
 	if (ph->meals_eaten >= ph->data->max_meal)
 		ph->data->finished++;
-	ph->last_meal = now(0);// + ph->data->eat_time;
+	ph->last_meal = now(0);
+	printf("%lli Philo %i is eating his meal %i.\n", now(0), ph->id + 1, ph->meals_eaten);
 	msleep(ph->data->eat_time);
 }
 
@@ -101,7 +99,32 @@ void	think(int i)
 void	die(t_ph *ph)
 {
 	ph->data->dead = 1;
-	printf("%lli Philo %i died. Last meal (n %i) %lli msec ago.\n", now(0), ph->id + 1, ph->meals_eaten, now(0) - ph->last_meal);
+	printf("%lli Philo %i died. Last meal (%i/%i) %lli msec ago.\n", now(0), ph->id + 1, ph->meals_eaten, ph->data->max_meal, now(0) - ph->last_meal);
+}
+
+void	*death_routine(void *void_philo)
+{
+	int			i;
+	int			max;
+	t_ph		*ph;
+
+	ph = (t_ph *) void_philo;
+	max = ph[0].data->nbr - 1;
+	while (1)
+	{
+		i = -1;
+		while (++i < max)
+		{
+			if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr)
+				break ;
+			if (ph[i].meals_eaten < ph[i].data->max_meal && !ph[0].data->dead &&
+					now(0) - ph[i].last_meal >= ph[i].data->death_time)
+				die(&ph[i]);
+		}
+		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr)
+			break ;
+	}
+	pthread_exit(NULL);
 }
 
 void	*routine(void *void_philo)
@@ -116,7 +139,7 @@ void	*routine(void *void_philo)
 		pthread_exit(NULL);
 	}
 	if (ph->id % 2)
-		msleep(1);
+		usleep(150);
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
 		take_forks(ph, ph->frks);
@@ -185,7 +208,7 @@ int	malloc_arrays(int nbr, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks)
 	*ph = malloc(nbr * sizeof(t_ph));
 	if (!*ph)
 		return (1);
-	*tids = malloc(nbr * sizeof(pthread_t));
+	*tids = malloc((nbr + 1) * sizeof(pthread_t));
 	if (!*tids)
 	{
 		free(ph);
@@ -215,33 +238,8 @@ t_data	get_rules(int ac, char *av[])
 	else
 		data.max_meal = 0;
 	data.dead = 0;
-	data.finished = -1;
+	data.finished = 0;
 	return (data);
-}
-
-void	*death_routine(void *void_philo)
-{
-	int			i;
-	t_ph		*ph;
-
-	pthread_detach(pthread_self());
-	ph = (t_ph *) void_philo;
-	while (1)
-	{
-		i = -1;
-		while (++i < ph[0].data->nbr)
-		{
-			if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
-				break ;
-			if (now(0) - ph[i].last_meal >= ph[0].data->death_time &&
-					!ph[0].data->dead)
-				die(&ph[i]);
-		}
-		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr - 1)
-			break ;
-	}
-	//printf("Finished : %i/%i\n", ph[0].data->finished + 1, ph[0].data->nbr);
-	pthread_exit(NULL);
 }
 
 int	main(int ac, char *av[])
@@ -249,7 +247,6 @@ int	main(int ac, char *av[])
 	t_data			data;
 	t_ph			*ph;
 	pthread_t		*tids;
-	pthread_t		death;
 	pthread_mutex_t	*frks;
 
 	if (ac != 5 && ac != 6)
@@ -257,11 +254,14 @@ int	main(int ac, char *av[])
 	data = get_rules(ac, av);
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail."));
+	printf("Max Meal: %i\n", data.max_meal);
 	init_mutexes(data.nbr, frks); //Protect mutexes ?
 	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
-	pthread_create(&death, NULL, death_routine, (void *) ph);
+	pthread_create(&tids[data.nbr], NULL, death_routine, (void *) ph);
 	wait_destroy_mutexes(data.nbr, tids, frks);
+	pthread_join(tids[data.nbr], NULL);
+	printf("Finished : %i/%i\n", ph[0].data->finished, ph[0].data->nbr);
 	free_arrays(ph, tids, frks);
 	return (0);
 }

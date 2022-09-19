@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/14 15:10:15 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 10:38:26 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,6 @@
 # include <stdlib.h>
 # include <unistd.h>
 # include <sys/time.h>
-
-//Change to enum ?
-# define EATING 0
-# define SLEEPING 1
 
 typedef struct s_data
 {
