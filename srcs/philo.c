@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/19 12:51:58 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 13:54:29 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,8 +63,8 @@ void	take_forks(t_ph *ph, pthread_mutex_t *frks)
 	int	id;
 
 	id = ph->id;
-	take_fork(ph, id + ((id + 1) % 2), frks);
-	take_fork(ph, id + (id % 2), frks);
+	take_fork(ph, id + ((id + ph->meals_eaten + 1) % 2), frks);
+	take_fork(ph, id + ((id + ph->meals_eaten) % 2), frks);
 	ph->has_forks = 1;
 }
 
@@ -78,9 +78,9 @@ void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 void	eat(t_ph *ph)
 {
 	ph->meals_eaten++;
-	if (ph->meals_eaten >= ph->data->max_meal)
+	if (ph->data->max_meal != 0 && ph->meals_eaten >= ph->data->max_meal)
 		ph->data->finished++;
-	ph->last_meal = now(0);
+	ph->last_meal = now(0);// + ph->data->eat_time;
 	printf("%lli Philo %i is eating his meal %i.\n", now(0), ph->id + 1, ph->meals_eaten);
 	msleep(ph->data->eat_time);
 }
@@ -115,10 +115,11 @@ void	*death_routine(void *void_philo)
 		i = -1;
 		while (++i < max)
 		{
+			if (ph[0].data->max_meal != 0 && ph[i].meals_eaten >= ph[0].data->max_meal)
+				break ;
 			if (ph[0].data->dead || ph[0].data->finished == max)
 				break ;
-			if (ph[i].meals_eaten < ph[i].data->max_meal && !ph[0].data->dead &&
-					now(0) - ph[i].last_meal >= ph[i].data->death_time)
+			if (now(0) - ph[i].last_meal > ph[i].data->death_time)
 				die(&ph[i]);
 		}
 		if (ph[0].data->dead || ph[0].data->finished == max)
@@ -140,7 +141,7 @@ void	*routine(void *void_philo)
 		pthread_exit(NULL);
 	}
 	if (ph->id % 2)
-		usleep(150);
+		usleep(100);
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
 		take_forks(ph, ph->frks);
