@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/19 12:14:14 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 12:51:58 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,19 +109,19 @@ void	*death_routine(void *void_philo)
 	t_ph		*ph;
 
 	ph = (t_ph *) void_philo;
-	max = ph[0].data->nbr - 1;
+	max = ph[0].data->nbr;
 	while (1)
 	{
 		i = -1;
 		while (++i < max)
 		{
-			if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr)
+			if (ph[0].data->dead || ph[0].data->finished == max)
 				break ;
 			if (ph[i].meals_eaten < ph[i].data->max_meal && !ph[0].data->dead &&
 					now(0) - ph[i].last_meal >= ph[i].data->death_time)
 				die(&ph[i]);
 		}
-		if (ph[0].data->dead || ph[0].data->finished == ph[0].data->nbr)
+		if (ph[0].data->dead || ph[0].data->finished == max)
 			break ;
 	}
 	pthread_exit(NULL);
@@ -136,6 +136,7 @@ void	*routine(void *void_philo)
 	{
 		printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, 1);
 		msleep(ph->data->death_time);
+		//ph->data->dead = 1;
 		pthread_exit(NULL);
 	}
 	if (ph->id % 2)
@@ -254,7 +255,6 @@ int	main(int ac, char *av[])
 	data = get_rules(ac, av);
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail."));
-	printf("Max Meal: %i\n", data.max_meal);
 	init_mutexes(data.nbr, frks); //Protect mutexes ?
 	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
