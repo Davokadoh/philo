@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/19 13:54:29 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 14:21:36 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -98,7 +98,9 @@ void	think(int i)
 
 void	die(t_ph *ph)
 {
+	pthread_mutex_lock(&ph->data->death_mutex);
 	ph->data->dead = 1;
+	pthread_mutex_unlock(&ph->data->death_mutex);
 	printf("%lli Philo %i died. Last meal (%i/%i) %lli msec ago.\n", now(0), ph->id + 1, ph->meals_eaten, ph->data->max_meal, now(0) - ph->last_meal);
 }
 
@@ -145,15 +147,33 @@ void	*routine(void *void_philo)
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
 		take_forks(ph, ph->frks);
+		pthread_mutex_lock(&ph->data->death_mutex);
 		if (ph->data->dead)
+		{
+			pthread_mutex_unlock(&ph->data->death_mutex);
 			break;
+		}
+		else
+			pthread_mutex_unlock(&ph->data->death_mutex);
 		eat(ph);
 		drop_forks(ph, ph->frks);
+		pthread_mutex_lock(&ph->data->death_mutex);
 		if (ph->data->dead)
+		{
+			pthread_mutex_unlock(&ph->data->death_mutex);
 			break;
+		}
+		else
+			pthread_mutex_unlock(&ph->data->death_mutex);
 		zzz(ph->data->zzz_time, ph->id);
+		pthread_mutex_lock(&ph->data->death_mutex);
 		if (ph->data->dead)
+		{
+			pthread_mutex_unlock(&ph->data->death_mutex);
 			break;
+		}
+		else
+			pthread_mutex_unlock(&ph->data->death_mutex);
 		think(ph->id);
 	}
 	if (ph->has_forks)
@@ -241,6 +261,7 @@ t_data	get_rules(int ac, char *av[])
 		data.max_meal = 0;
 	data.dead = 0;
 	data.finished = 0;
+	pthread_mutex_init(&data.death_mutex, NULL);
 	return (data);
 }
 

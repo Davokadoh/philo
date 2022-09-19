@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/19 10:38:26 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 14:14:39 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,13 +21,14 @@
 
 typedef struct s_data
 {
-	int			nbr;
-	int			dead;
-	int			death_time;
-	int			eat_time;
-	int			zzz_time;
-	int			max_meal;
-	int			finished;
+	int				nbr;
+	int				dead;
+	int				death_time;
+	int				eat_time;
+	int				zzz_time;
+	int				max_meal;
+	int				finished;
+	pthread_mutex_t	death_mutex;
 }				t_data;
 
 typedef struct s_philo
