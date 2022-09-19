@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/19 14:21:36 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/19 15:32:21 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,8 +53,14 @@ void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 {
 	frk %= ph->data->nbr;
 	pthread_mutex_lock(&frks[frk]);
+	pthread_mutex_lock(&ph->data->death_mutex);
 	if (ph->data->dead)
+	{
+		pthread_mutex_unlock(&ph->data->death_mutex);
 		return;
+	}
+	else
+		pthread_mutex_unlock(&ph->data->death_mutex);
 	printf("%lli Philo %i has taken fork %i.\n", now(0), ph->id + 1, frk + 1);
 }
 
@@ -63,8 +69,8 @@ void	take_forks(t_ph *ph, pthread_mutex_t *frks)
 	int	id;
 
 	id = ph->id;
-	take_fork(ph, id + ((id + ph->meals_eaten + 1) % 2), frks);
-	take_fork(ph, id + ((id + ph->meals_eaten) % 2), frks);
+	take_fork(ph, id + ((id + 1) % 2), frks);
+	take_fork(ph, id + (id % 2), frks);
 	ph->has_forks = 1;
 }
 
@@ -77,6 +83,7 @@ void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 
 void	eat(t_ph *ph)
 {
+	//lock(meals_eaten_mutex);
 	ph->meals_eaten++;
 	if (ph->data->max_meal != 0 && ph->meals_eaten >= ph->data->max_meal)
 		ph->data->finished++;
@@ -121,6 +128,7 @@ void	*death_routine(void *void_philo)
 				break ;
 			if (ph[0].data->dead || ph[0].data->finished == max)
 				break ;
+			//Test strict > otherwise ph sometimes die just before eating
 			if (now(0) - ph[i].last_meal > ph[i].data->death_time)
 				die(&ph[i]);
 		}
