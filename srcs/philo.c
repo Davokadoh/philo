@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/22 14:33:57 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/22 15:38:17 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,12 +41,11 @@ int	is_finished(t_ph *ph)
 	}
 	pthread_mutex_unlock(&ph->data->m_end);
 	return (0);
-
 }
 
 long	now(int init)
 {
-    struct timeval		time;
+	struct timeval		time;
 	static long			start;
 	long				milliseconds;
 
@@ -59,7 +58,7 @@ long	now(int init)
 
 void	msleep(long long msec)
 {
-    struct timeval	time;
+	struct timeval	time;
 	long			start;
 	long			now;
 
@@ -94,6 +93,11 @@ void	take_forks(t_ph *ph, pthread_mutex_t *m_frks)
 
 	id = ph->id;
 	take_fork(ph, id + ((id + 1) % 2), m_frks);
+	if (ph->data->nbr == 1)
+	{
+		msleep(ph->data->death_time + 2);
+		return ;
+	}
 	take_fork(ph, id + (id % 2), m_frks);
 	ph->has_forks = 1;
 }
@@ -177,12 +181,6 @@ void	*routine(void *void_philo)
 	t_ph		*ph;
 
 	ph = (t_ph *) void_philo;
-	if (ph->data->nbr == 1)
-	{
-		m_printf(&ph->data->m_write, "%i Philo 1 has taken fork 1.\n", now(0));
-		msleep(ph->data->death_time + 2);
-		pthread_exit(NULL);
-	}
 	if (ph->id % 2)
 		usleep(100);
 	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
@@ -191,15 +189,14 @@ void	*routine(void *void_philo)
 		eat(ph);
 		drop_forks(ph, ph->m_frks);
 		if (is_end(ph))
-			break;
+			break ;
 		zzz(ph);
 		if (is_end(ph))
-			break;
+			break ;
 		think(ph);
 	}
 	if (ph->has_forks)
 		drop_forks(ph, ph->m_frks);
-	pthread_join(ph->death_timer, NULL);
 	pthread_exit(NULL);
 }
 
@@ -300,8 +297,10 @@ int	main(int ac, char *av[])
 	if (ac != 5 && ac != 6)
 		return (ft_error("Wrong number of arguments.", 1));
 	data = get_data(ac, av);
+	//if (!data)
+	//	return (ft_error("Wrong arguments", 2));
 	if (malloc_arrays(data.nbr, &ph, &tids, &m_frks))
-		return (ft_error("Malloc fail.", 2));
+		return (ft_error("Malloc fail.", 3));
 	init_forks(data.nbr, m_frks);
 	now(1);
 	threads(ph, &data, m_frks, tids); //Check if tids created ?
