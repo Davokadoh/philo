@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/20 14:59:00 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/22 13:26:45 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,22 +28,20 @@ typedef struct s_data
 	int				zzz_time;
 	int				max_meal;
 	int				all_finished;
-	pthread_mutex_t	finished_mutex;
-	pthread_mutex_t	death_mutex;
+	pthread_mutex_t	m_write;
+	pthread_mutex_t	m_end;
 }				t_data;
 
 typedef struct s_philo
 {
 	int				id;
 	int				meals_eaten;
+	int				finished;
 	int				has_forks;
 	long			last_meal;
 	t_data			*data;
 	pthread_t		death_timer;
-	pthread_mutex_t	*frks;
-	pthread_mutex_t	last_meal_mutex;
+	pthread_mutex_t	*m_frks;
+	pthread_mutex_t	m_last_meal;
 }				t_ph;
-
-int	ft_atoi(const char *str);
-
 #endif
