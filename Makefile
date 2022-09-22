@@ -1,5 +1,5 @@
 CC				=	gcc
-CFLAGS 			=	-Wall -Wextra -Werror #-fsanitize=thread #-O3
+CFLAGS 			=	-Wall -Wextra -Werror -fsanitize=thread #-O3
 TARGET 			=	philo
 SRCS_DIR 		=	./srcs
 OBJS_DIR 		=	./objs

@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/20 15:12:38 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/22 11:30:13 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,26 +125,11 @@ void	die(t_ph *ph)
 	pthread_mutex_unlock(&ph->data->death_mutex);
 }
 
-void	*death_routine(void *void_philo)
-{
-	t_ph		*ph;
-
-	ph = (t_ph *) void_philo;
-	msleep(ph->data->death_time);
-	pthread_mutex_lock(&ph->last_meal_mutex);
-	if (now(0) - ph->last_meal > ph->data->death_time)
-		die(ph);
-	pthread_mutex_unlock(&ph->last_meal_mutex);
-	pthread_exit(NULL);
-}
-
 void	eat(t_ph *ph)
 {
 	pthread_mutex_lock(&ph->last_meal_mutex);
 	ph->last_meal = now(0);
 	pthread_mutex_unlock(&ph->last_meal_mutex);
-	pthread_join(ph->death_timer, NULL);
-	pthread_create(&ph->death_timer, NULL, death_routine, (void *) ph);
 	printf("%li Philo %i is eating his meal %i.\n", now(0), ph->id + 1, ph->meals_eaten);
 	msleep(ph->data->eat_time);
 	ph->meals_eaten++;
@@ -225,7 +210,7 @@ void	free_arrays(t_ph *ph, pthread_t *tids, pthread_mutex_t *frks)
 	free(ph);
 }
 
-void	init_mutexes(int max, pthread_mutex_t *frks)
+void	init_forks(int max, pthread_mutex_t *frks)
 {
 	int	i;
 
@@ -275,6 +260,27 @@ t_data	get_data(int ac, char *av[])
 	return (data);
 }
 
+void	death_check(t_ph *ph, int max)
+{
+	int	i;
+
+	while (1)
+	{
+		i = -1;
+		while (++i < max)
+		{
+			if (is_dead(&ph[0]) || is_finished(&ph[0]))
+				break ;
+			pthread_mutex_lock(&ph[i].last_meal_mutex);
+			if (now(0) - ph[i].last_meal > ph[i].data->death_time)
+				die(ph);
+			pthread_mutex_unlock(&ph[i].last_meal_mutex);
+		}
+		if (is_dead(&ph[0]) || is_finished(&ph[0]))
+			break ;
+	}
+}
+
 int	main(int ac, char *av[])
 {
 	t_data			data;
@@ -287,9 +293,10 @@ int	main(int ac, char *av[])
 	data = get_data(ac, av);
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail."));
-	init_mutexes(data.nbr, frks);
+	init_forks(data.nbr, frks);
 	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
+	death_check(ph, data.nbr);
 	wait_destroy_mutexes(data.nbr, tids, frks);
 	printf("Finished : %i/%i\n", ph[0].data->all_finished, ph[0].data->nbr);
 	free_arrays(ph, tids, frks);
