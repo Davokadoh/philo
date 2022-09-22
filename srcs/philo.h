@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/22 13:26:45 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/22 15:44:10 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ typedef struct s_philo
 	long			last_meal;
 	t_data			*data;
 	pthread_t		death_timer;
-	pthread_mutex_t	*m_frks;
+	pthread_mutex_t	*frks;
 	pthread_mutex_t	m_last_meal;
 }				t_ph;
 #endif
