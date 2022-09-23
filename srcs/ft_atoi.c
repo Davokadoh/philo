@@ -6,11 +6,9 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/28 14:37:46 by jleroux           #+#    #+#             */
-/*   Updated: 2022/05/25 14:30:32 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/23 12:37:27 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-#include "ft_printf.h"
 
 int	ft_atoi(char **str)
 {

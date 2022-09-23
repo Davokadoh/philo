@@ -6,12 +6,11 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/22 15:45:48 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/23 13:33:15 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
-#include "ft_printf.h"
 
 int	ft_error(char *msg, int errno)
 {
@@ -22,7 +21,7 @@ int	ft_error(char *msg, int errno)
 int	is_end(t_ph *ph)
 {
 	pthread_mutex_lock(&ph->data->m_end);
-	if (ph->data->all_finished == ph->data->nbr || ph->data->dead)
+	if (ph->data->all_finished >= ph->data->nbr || ph->data->dead)
 	{
 		pthread_mutex_unlock(&ph->data->m_end);
 		return (1);
@@ -83,8 +82,7 @@ void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 		pthread_mutex_unlock(&ph->data->m_end);
 		return ;
 	}
-	m_printf(&ph->data->m_write, "%i Philo %i has taken fork %i.\n", \
-			now(0), ph->id + 1, frk + 1);
+	printf("%li Philo %i has taken fork %i.\n", now(0), ph->id + 1, frk + 1);
 	pthread_mutex_unlock(&ph->data->m_end);
 }
 
@@ -112,26 +110,26 @@ void	drop_forks(t_ph *ph, pthread_mutex_t *frks)
 
 void	zzz(t_ph *ph)
 {
-	m_printf(&ph->data->m_write, "%i Philo %i is sleeping.\n", \
-			now(0), ph->id + 1);
+	pthread_mutex_lock(&ph->data->m_end);
+	if (ph->data->dead)
+	{
+		pthread_mutex_unlock(&ph->data->m_end);
+		return ;
+	}
+	printf("%li Philo %i is sleeping.\n", now(0), ph->id + 1);
+	pthread_mutex_unlock(&ph->data->m_end);
 	msleep(ph->data->zzz_time);
 }
 
 void	think(t_ph *ph)
 {
-	m_printf(&ph->data->m_write, "%i Philo %i is thinking.\n", \
-			now(0), ph->id + 1);
-}
-
-void	die(t_ph *ph)
-{
 	pthread_mutex_lock(&ph->data->m_end);
-	if (ph->data->dead == 0)
+	if (ph->data->dead)
 	{
-		ph->data->dead = 1;
-		m_printf(&ph->data->m_write, "%i Philo %i died.\n", \
-				now(0), ph->id + 1, now(0) - ph->last_meal);
+		pthread_mutex_unlock(&ph->data->m_end);
+		return ;
 	}
+	printf("%li Philo %i is thinking.\n", now(0), ph->id + 1);
 	pthread_mutex_unlock(&ph->data->m_end);
 }
 
@@ -145,7 +143,7 @@ void	eat(t_ph *ph)
 	}
 	ph->last_meal = now(0);
 	pthread_mutex_unlock(&ph->m_last_meal);
-	m_printf(&ph->data->m_write, "%i Philo %i is eating his meal %i.\n", \
+	printf("%li Philo %i is eating his meal %i.\n", \
 			now(0), ph->id + 1, ph->meals_eaten + 1);
 	ph->meals_eaten++;
 	if (ph->data->max_meal != 0 && ph->meals_eaten >= ph->data->max_meal)
@@ -158,6 +156,18 @@ void	eat(t_ph *ph)
 	msleep(ph->data->eat_time);
 }
 
+void	die(t_ph *ph)
+{
+	pthread_mutex_lock(&ph->data->m_end);
+	if (ph->data->dead == 0)
+	{
+		ph->data->dead = 1;
+		printf("%li Philo %i died . Last meal %li msec ago.\n", \
+				now(0), ph->id + 1, now(0) - ph->last_meal);
+	}
+	pthread_mutex_unlock(&ph->data->m_end);
+}
+
 void	death_check(t_ph *ph, int max)
 {
 	int	i;
@@ -167,7 +177,7 @@ void	death_check(t_ph *ph, int max)
 		i = -1;
 		while (++i < max)
 		{
-			if (is_end(&ph[0]))
+			if (is_end(&ph[i]))
 				break ;
 			if (is_finished(&ph[i]))
 				continue ;
@@ -188,16 +198,12 @@ void	*routine(void *void_philo)
 	ph = (t_ph *) void_philo;
 	if (ph->id % 2)
 		usleep(100);
-	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
+	while (!is_end(ph))
 	{
 		take_forks(ph, ph->frks);
 		eat(ph);
 		drop_forks(ph, ph->frks);
-		if (is_end(ph))
-			break ;
 		zzz(ph);
-		if (is_end(ph))
-			break ;
 		think(ph);
 	}
 	if (ph->has_forks)
@@ -209,6 +215,10 @@ void	threads(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 {
 	int	i;
 
+	i = -1;
+	while (++i < data->nbr)
+		pthread_mutex_init(&frks[i], NULL);
+	now(1);
 	i = -1;
 	while (++i < data->nbr)
 	{
@@ -242,15 +252,6 @@ void	free_arrays(t_ph *ph, pthread_t *tids, pthread_mutex_t *frks)
 	free(ph);
 }
 
-void	init_forks(int max, pthread_mutex_t *frks)
-{
-	int	i;
-
-	i = -1;
-	while (++i < max)
-		pthread_mutex_init(&frks[i], NULL);
-}
-
 int	malloc_arrays(int nbr, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks)
 {
 	*ph = malloc(nbr * sizeof(t_ph));
@@ -278,6 +279,8 @@ t_data	get_data(int ac, char *av[])
 
 	//Check if args are ints before atoiing
 	data.nbr = ft_atoi(&av[1]);
+	if (data.nbr < 1)
+		exit(1);
 	data.death_time = ft_atoi(&av[2]);
 	data.eat_time = ft_atoi(&av[3]);
 	data.zzz_time = ft_atoi(&av[4]);
@@ -287,7 +290,6 @@ t_data	get_data(int ac, char *av[])
 		data.max_meal = 0;
 	data.dead = 0;
 	data.all_finished = 0;
-	pthread_mutex_init(&data.m_write, NULL);
 	pthread_mutex_init(&data.m_end, NULL);
 	return (data);
 }
@@ -306,12 +308,11 @@ int	main(int ac, char *av[])
 	//	return (ft_error("Wrong arguments", 2));
 	if (malloc_arrays(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail.", 3));
-	init_forks(data.nbr, frks);
-	now(1);
 	threads(ph, &data, frks, tids); //Check if tids created ?
 	death_check(ph, data.nbr);
 	wait_destroy_mutexes(data.nbr, tids, frks);
 	printf("Finished : %i/%i\n", ph[0].data->all_finished, ph[0].data->nbr);
 	free_arrays(ph, tids, frks);
+	pthread_mutex_destroy(&data.m_end);
 	return (0);
 }

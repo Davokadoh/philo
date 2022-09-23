@@ -1,62 +1,36 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2022/04/07 13:26:50 by jleroux           #+#    #+#              #
-#    Updated: 2022/05/25 11:34:00 by jleroux          ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
+CC				=	gcc
+CFLAGS 			=	-Wall -Wextra -Werror #-fsanitize=thread
+TARGET 			=	philo
+SRCS_DIR 		=	./srcs
+OBJS_DIR 		=	./objs
+LIBS			=	-lpthread
+_SRCS 			=	philo.c \
+					ft_printf.c\
+					ft_atoi.c\
+OBJS = $(patsubst %.c, $(OBJS_DIR)/%.o, $(_SRCS))
+SRCS = $(patsubst %, $(SRCS_DIR)/%, $(_SRCS))
 
-NAME	=	libftprintf.a
+.PHONY : all clean fclean re
 
-CC		=	gcc
+all: $(TARGET)
 
-CFLAGS	=	-Wall -Wextra -Werror
-
-AR		=	ar
-
-ARFLAGS	=	rcs
-
-SRCS	=	ft_printf.c\
-		   	put_char.c\
-			put_str.c\
-			put_int.c\
-			put_u_int.c\
-			put_hex.c\
-			put_ptr.c\
-			ft_atoi.c\
-			ft_itoa.c\
-			ft_itoa_base.c\
-			ft_strchr.c\
-			ft_strlen.c
-
-OBJS	=	$(SRCS:.c=.o)
-
-%.o	:	%.c
-			$(CC) $(CFLAGS) -c $< -o $@
-
-RM		=	rm -f
-
-all:		$(NAME)
-
-$(NAME):	$(OBJS)
-			$(AR) $(ARFLAGS) $(NAME) $(OBJS)
-
-bonus:		$(OBJS)
-			$(AR) $(ARFLAGS) $(NAME) $(OBJS)
+bonus: $(OBJS_BONUS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS_BONUS) $(LIBS)
 
 clean:
-			$(RM) $(OBJS)
+	rm -f $(OBJS_DIR) $(OBJS_BONUS)
 
-fclean:		clean
-			$(RM) $(NAME)
+fclean: clean
+	rm -f $(TARGET)
 
-re:			fclean all
+re: fclean all
 
-test:		all
-			$(CC) main.c libftprintf.a
+$(OBJS_DIR):
+	@mkdir -p $@
 
-.PHONY:		all clean fclean re
+$(OBJS_DIR)/%.o: $(SRCS_DIR)/%.c | $(OBJS_DIR)
+	@$(CC) -c $(CFLAGS) -o $@ $^
+
+$(TARGET): $(OBJS)
+	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
+
