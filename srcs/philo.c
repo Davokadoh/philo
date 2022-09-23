@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 13:33:15 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/23 14:32:07 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,7 +162,7 @@ void	die(t_ph *ph)
 	if (ph->data->dead == 0)
 	{
 		ph->data->dead = 1;
-		printf("%li Philo %i died . Last meal %li msec ago.\n", \
+		printf("%li Philo %i died. Last meal %li msec ago.\n", \
 				now(0), ph->id + 1, now(0) - ph->last_meal);
 	}
 	pthread_mutex_unlock(&ph->data->m_end);
@@ -177,7 +177,7 @@ void	death_check(t_ph *ph, int max)
 		i = -1;
 		while (++i < max)
 		{
-			if (is_end(&ph[i]))
+			if (is_end(&ph[0]))
 				break ;
 			if (is_finished(&ph[i]))
 				continue ;
@@ -198,12 +198,16 @@ void	*routine(void *void_philo)
 	ph = (t_ph *) void_philo;
 	if (ph->id % 2)
 		usleep(100);
-	while (!is_end(ph))
+	while (ph->meals_eaten < ph->data->max_meal || ph->data->max_meal == 0)
 	{
 		take_forks(ph, ph->frks);
 		eat(ph);
 		drop_forks(ph, ph->frks);
+		if (is_end(ph))
+			break ;
 		zzz(ph);
+		if (is_end(ph))
+			break ;
 		think(ph);
 	}
 	if (ph->has_forks)
