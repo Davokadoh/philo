@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 13:29:44 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/23 15:46:08 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,19 @@ typedef struct s_philo
 	pthread_mutex_t	m_last_meal;
 }				t_ph;
 
-int	ft_atoi(char **str);
+int		ft_atoi(char **str);
+int		ft_error(char *msg, int errno);
+int		malloc_arr(int nb, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks);
+void	free_arrays(t_ph *ph, pthread_t *tids, pthread_mutex_t *frks);
+int		is_end(t_ph *ph);
+int		is_finished(t_ph *ph);
+long	now(int init);
+void	msleep(long long msec);
+void	eat(t_ph *ph);
+void	zzz(t_ph *ph);
+void	think(t_ph *ph);
+void	take_forks(t_ph *ph, pthread_mutex_t *frks);
+void	drop_forks(t_ph *ph, pthread_mutex_t *frks);
+void	death_check(t_ph *ph, int max);
 
 #endif

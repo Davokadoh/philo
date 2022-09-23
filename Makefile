@@ -5,6 +5,11 @@ SRCS_DIR 		=	./srcs
 OBJS_DIR 		=	./objs
 LIBS			=	-lpthread
 _SRCS 			=	philo.c \
+					time.c \
+					forks.c \
+					death.c \
+					memory.c \
+					actions.c \
 					ft_atoi.c
 
 OBJS = $(patsubst %.c, $(OBJS_DIR)/%.o, $(_SRCS))
