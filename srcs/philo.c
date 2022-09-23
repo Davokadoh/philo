@@ -6,13 +6,13 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 15:46:11 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/23 16:26:46 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	*routine(void *void_philo)
+static void	*routine(void *void_philo)
 {
 	t_ph		*ph;
 
@@ -36,7 +36,7 @@ void	*routine(void *void_philo)
 	pthread_exit(NULL);
 }
 
-void	init(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
+static void	init(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 {
 	int	i;
 
@@ -58,7 +58,7 @@ void	init(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 	}
 }
 
-void	wait_destroy_mutexes(int max, pthread_t *tids, pthread_mutex_t *frks)
+static void	destroy_mutexes(int max, pthread_t *tids, pthread_mutex_t *frks)
 {
 	int	i;
 
@@ -70,7 +70,7 @@ void	wait_destroy_mutexes(int max, pthread_t *tids, pthread_mutex_t *frks)
 		pthread_mutex_destroy(&frks[i]);
 }
 
-t_data	get_data(int ac, char *av[])
+static t_data	get_data(int ac, char *av[])
 {
 	t_data	data;
 
@@ -100,12 +100,11 @@ int	main(int ac, char *av[])
 	if (ac != 5 && ac != 6)
 		return (ft_error("Wrong number of arguments.", 1));
 	data = get_data(ac, av);
-	printf("%i\n", data.zzz_time);
 	if (malloc_arr(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail.", 3));
 	init(ph, &data, frks, tids); //Check if tids created ?
 	death_check(ph, data.nbr);
-	wait_destroy_mutexes(data.nbr, tids, frks);
+	destroy_mutexes(data.nbr, tids, frks);
 	printf("Finished : %i/%i\n", ph[0].data->all_finished, ph[0].data->nbr);
 	free_arrays(ph, tids, frks);
 	pthread_mutex_destroy(&data.m_end);
