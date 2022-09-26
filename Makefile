@@ -19,14 +19,11 @@ SRCS = $(patsubst %, $(SRCS_DIR)/%, $(_SRCS))
 
 all: $(TARGET)
 
-bonus: $(OBJS_BONUS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS_BONUS) $(LIBS)
-
 clean:
-	rm -rf $(OBJS_DIR) $(OBJS_BONUS)
+	@rm -rf $(OBJS_DIR) $(OBJS_BONUS)
 
 fclean: clean
-	rm -f $(TARGET)
+	@rm -f $(TARGET)
 
 re: fclean all
 

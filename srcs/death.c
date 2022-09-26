@@ -6,23 +6,11 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/23 15:34:10 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 15:37:30 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/26 12:55:17 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
-
-static void	die(t_ph *ph)
-{
-	pthread_mutex_lock(&ph->data->m_end);
-	if (ph->data->dead == 0)
-	{
-		ph->data->dead = 1;
-		printf("%li Philo %i died. Last meal %li msec ago.\n", \
-				now(0), ph->id + 1, now(0) - ph->last_meal);
-	}
-	pthread_mutex_unlock(&ph->data->m_end);
-}
 
 void	death_check(t_ph *ph, int max)
 {

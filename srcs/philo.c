@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:11:47 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 16:26:46 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/26 13:05:52 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ static void	init(t_ph *ph, t_data *data, pthread_mutex_t *frks, pthread_t *tids)
 {
 	int	i;
 
+	pthread_mutex_init(&data->m_write, NULL);
 	i = -1;
 	while (++i < data->nbr)
 		pthread_mutex_init(&frks[i], NULL);
@@ -102,11 +103,12 @@ int	main(int ac, char *av[])
 	data = get_data(ac, av);
 	if (malloc_arr(data.nbr, &ph, &tids, &frks))
 		return (ft_error("Malloc fail.", 3));
-	init(ph, &data, frks, tids); //Check if tids created ?
+	init(ph, &data, frks, tids);
 	death_check(ph, data.nbr);
 	destroy_mutexes(data.nbr, tids, frks);
+	pthread_mutex_destroy(&data.m_write);
+	pthread_mutex_destroy(&data.m_end);
 	printf("Finished : %i/%i\n", ph[0].data->all_finished, ph[0].data->nbr);
 	free_arrays(ph, tids, frks);
-	pthread_mutex_destroy(&data.m_end);
 	return (0);
 }

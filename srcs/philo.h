@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 15:46:08 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/26 12:57:05 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ typedef struct s_data
 	int				zzz_time;
 	int				max_meal;
 	int				all_finished;
+	pthread_mutex_t	m_write;
 	pthread_mutex_t	m_end;
 }				t_data;
 
@@ -51,11 +52,13 @@ int		is_end(t_ph *ph);
 int		is_finished(t_ph *ph);
 long	now(int init);
 void	msleep(long long msec);
+void	die(t_ph *ph);
 void	eat(t_ph *ph);
 void	zzz(t_ph *ph);
 void	think(t_ph *ph);
 void	take_forks(t_ph *ph, pthread_mutex_t *frks);
 void	drop_forks(t_ph *ph, pthread_mutex_t *frks);
 void	death_check(t_ph *ph, int max);
+void	m_print(t_ph *ph, char *msg);
 
 #endif

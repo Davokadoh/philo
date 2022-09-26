@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/23 15:30:42 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 15:36:53 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/26 12:57:59 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ static void	take_fork(t_ph *ph, int frk, pthread_mutex_t *frks)
 		pthread_mutex_unlock(&ph->data->m_end);
 		return ;
 	}
-	printf("%li Philo %i has taken fork %i.\n", now(0), ph->id + 1, frk + 1);
+	m_print(ph, "has taken a fork.");
 	pthread_mutex_unlock(&ph->data->m_end);
 }
 

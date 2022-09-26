@@ -6,11 +6,29 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/23 15:24:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/23 15:29:57 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/26 12:58:22 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+
+void	m_print(t_ph *ph, char *msg)
+{
+	pthread_mutex_lock(&ph->data->m_write);
+	printf("%li %i %s\n", now(0), ph->id + 1, msg);
+	pthread_mutex_unlock(&ph->data->m_write);
+}
+
+void	die(t_ph *ph)
+{
+	pthread_mutex_lock(&ph->data->m_end);
+	if (ph->data->dead == 0)
+	{
+		ph->data->dead = 1;
+		m_print(ph, "died.");
+	}
+	pthread_mutex_unlock(&ph->data->m_end);
+}
 
 void	eat(t_ph *ph)
 {
@@ -22,8 +40,7 @@ void	eat(t_ph *ph)
 	}
 	ph->last_meal = now(0);
 	pthread_mutex_unlock(&ph->m_last_meal);
-	printf("%li Philo %i is eating his meal %i.\n", \
-			now(0), ph->id + 1, ph->meals_eaten + 1);
+	m_print(ph, "is eating.");
 	ph->meals_eaten++;
 	if (ph->data->max_meal != 0 && ph->meals_eaten >= ph->data->max_meal)
 	{
@@ -43,7 +60,7 @@ void	zzz(t_ph *ph)
 		pthread_mutex_unlock(&ph->data->m_end);
 		return ;
 	}
-	printf("%li Philo %i is sleeping.\n", now(0), ph->id + 1);
+	m_print(ph, "is sleeping.");
 	pthread_mutex_unlock(&ph->data->m_end);
 	msleep(ph->data->zzz_time);
 }
@@ -56,6 +73,6 @@ void	think(t_ph *ph)
 		pthread_mutex_unlock(&ph->data->m_end);
 		return ;
 	}
-	printf("%li Philo %i is thinking.\n", now(0), ph->id + 1);
+	m_print(ph, "is thinking.");
 	pthread_mutex_unlock(&ph->data->m_end);
 }
