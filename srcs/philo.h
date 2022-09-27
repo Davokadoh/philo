@@ -6,7 +6,7 @@
 /*   By: jleroux <marvin@42lausanne.ch>             +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/09 13:13:22 by jleroux           #+#    #+#             */
-/*   Updated: 2022/09/26 12:57:05 by jleroux          ###   ########.fr       */
+/*   Updated: 2022/09/27 11:21:25 by jleroux          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,11 +46,11 @@ typedef struct s_philo
 
 int		ft_atoi(char **str);
 int		ft_error(char *msg, int errno);
-int		malloc_arr(int nb, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks);
-void	free_arrays(t_ph *ph, pthread_t *tids, pthread_mutex_t *frks);
 int		is_end(t_ph *ph);
 int		is_finished(t_ph *ph);
-long	now(int init);
+int		malloc_arr(int nb, t_ph **ph, pthread_t **tids, pthread_mutex_t **frks);
+void	free_arrays(t_ph *ph, pthread_t *tids, pthread_mutex_t *frks);
+void	destroy_mutexes(t_data *data, pthread_t *tids, pthread_mutex_t *frks);
 void	msleep(long long msec);
 void	die(t_ph *ph);
 void	eat(t_ph *ph);
@@ -60,5 +60,6 @@ void	take_forks(t_ph *ph, pthread_mutex_t *frks);
 void	drop_forks(t_ph *ph, pthread_mutex_t *frks);
 void	death_check(t_ph *ph, int max);
 void	m_print(t_ph *ph, char *msg);
+long	now(int init);
 
 #endif
